@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Primal Fantasy — Prototype</title>
+<style>
+:root{--bg:#101725;--panel:#182438;--edge:#344861;--ink:#eef5ff;--muted:#9fb3c9;--gold:#ffd66b}
+*{box-sizing:border-box}body{margin:0;color:var(--ink);font:15px system-ui,Segoe UI,Arial;background:radial-gradient(ellipse at 20% 0%,#283b59,#101725 60%);min-height:100vh}
+header{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #344861;background:#101725cc;position:sticky;top:0;z-index:3}
+h1{font-size:20px;margin:0;letter-spacing:.08em}header small{color:var(--gold)}button{background:#29496b;color:white;border:1px solid #52759a;border-radius:10px;padding:10px 13px;cursor:pointer;font-weight:650}button:hover{filter:brightness(1.2)}button:disabled{opacity:.4}
+main{max-width:1200px;margin:auto;padding:14px;display:grid;grid-template-columns:1fr 300px;gap:14px}
+#world{position:relative;overflow:hidden;border:1px solid var(--edge);border-radius:16px;background:linear-gradient(#8ac7e8 0 30%,#bbebba 30% 100%);min-height:510px}
+canvas{display:block;width:100%;height:510px;image-rendering:pixelated}
+.panel{background:linear-gradient(160deg,#1c2c43,#111a29);border:1px solid var(--edge);border-radius:14px;padding:14px;margin-bottom:12px}
+.panel h2{font-size:15px;margin:0 0 12px;color:var(--gold)}.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}.stat{padding:8px;background:#0e1725;border-radius:9px;color:var(--muted)}.stat b{display:block;color:white;font-size:18px}
+#log{height:160px;overflow:auto;font-size:13px;color:var(--muted);line-height:1.5}.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.wide{grid-column:span 2}
+.inv{display:flex;flex-wrap:wrap;gap:7px}.chip{background:#0e1725;border:1px solid #344861;border-radius:9px;padding:7px 9px;font-size:13px}
+footer{text-align:center;color:var(--muted);padding:10px}.hint{color:var(--muted);font-size:12px;margin-top:8px}
+@media(max-width:800px){main{grid-template-columns:1fr}#world{min-height:380px}canvas{height:380px}header{gap:10px}h1{font-size:16px}}
+</style>
+</head>
+<body>
+<header><div><h1>PRIMAL FANTASY</h1><small>Survive • Explore • Craft • Grow</small></div><button onclick="save()">Save Game</button></header>
+<main><section>
+<div id="world"><canvas id="c" width="900" height="510"></canvas></div>
+<div class="panel"><h2>Explore & Gather</h2><div class="actions">
+<button onclick="gather('wood')">Gather Wood</button><button onclick="gather('stone')">Mine Stone</button>
+<button onclick="gather('herb')">Gather Herbs</button><button onclick="hunt()">Hunt Wildlife</button>
+<button onclick="craft()" class="wide">Craft Primitive Tool (3 wood + 2 stone)</button>
+<button onclick="travel()" class="wide">Explore the Floating Isle</button>
+</div><div class="hint">Prototype controls: use actions below; the hero wanders a tiny stylized island.</div></div>
+</section><aside>
+<div class="panel"><h2>Character</h2><div class="stats">
+<div class="stat">Health<b id="hp">100</b></div><div class="stat">Level<b id="lvl">1</b></div>
+<div class="stat">XP<b id="xp">0</b></div><div class="stat">Tools<b id="tools">0</b></div>
+</div></div>
+<div class="panel"><h2>Inventory</h2><div class="inv" id="inv"></div></div>
+<div class="panel"><h2>Adventure Log</h2><div id="log"></div></div>
+<div class="panel"><h2>Prototype</h2><p class="hint">This is a small playable browser prototype, not a full MMO. It demonstrates basic gathering, hunting, crafting, leveling and exploration loops.</p><button onclick="reset()">Reset Prototype</button></div>
+</aside></main><footer>Primal Fantasy MMORPG — early interactive prototype</footer>
+<script>
+const c=document.getElementById('c'),ctx=c.getContext('2d');let s={hp:100,lvl:1,xp:0,tools:0,loc:'Meadow',inv:{wood:0,stone:0,herb:0,meat:0,hide:0}};
+function log(t){let el=document.getElementById('log');el.innerHTML+=t+'<br>';el.scrollTop=el.scrollHeight}
+function render(){for(let k of ['hp','lvl','xp','tools'])document.getElementById(k).textContent=s[k];document.getElementById('inv').innerHTML=Object.entries(s.inv).map(([k,v])=>`<span class="chip">${k}: <b>${v}</b></span>`).join('');draw()}
+function addxp(n){s.xp+=n;let need=s.lvl*30;if(s.xp>=need){s.xp-=need;s.lvl++;s.hp=Math.min(100,s.hp+15);log('✨ Level up! You reached level '+s.lvl+'.')} }
+function gather(k){let n=1+Math.floor(Math.random()*3);s.inv[k]+=n;addxp(5);log(`You gathered ${n} ${k}.`);render()}
+function hunt(){if(s.hp<15){log('Too weak to hunt. Rest first.');return}let success=Math.random()>.28;if(success){let m=1+Math.floor(Math.random()*2);s.inv.meat+=m;s.inv.hide++;s.hp-=5;addxp(12);log(`Successful hunt! +${m} meat, +1 hide. (−5 health)`)}else{s.hp-=12;log('The creature escaped and injured you. (−12 health)')}if(s.hp<=0){s.hp=50;s.inv.meat=Math.max(0,s.inv.meat-1);log('You fell! Respawned at camp. Some provisions were lost.')}render()}
+function craft(){if(s.inv.wood>=3&&s.inv.stone>=2){s.inv.wood-=3;s.inv.stone-=2;s.tools++;addxp(18);log('Crafted a primitive tool!');}else log('Need 3 wood and 2 stone.');render()}
+function travel(){if(s.loc==='Meadow'){s.loc='Floating Isle';addxp(20);s.inv.herb+=2;log('You crossed a magical gateway and reached the Floating Isle. Found 2 enchanted herbs.')}else{s.loc='Meadow';log('Returned to the Meadow.')}render()}
+function save(){localStorage.setItem('primal-save',JSON.stringify(s));log('Game saved in this browser.')}
+function reset(){s={hp:100,lvl:1,xp:0,tools:0,loc:'Meadow',inv:{wood:0,stone:0,herb:0,meat:0,hide:0}};localStorage.removeItem('primal-save');log('New adventure begins.');render()}
+function draw(){ctx.clearRect(0,0,900,510);ctx.fillStyle='#9ed7ef';ctx.fillRect(0,0,900,510);
+ // cloud layers
+ for(let i=0;i<6;i++){let x=(i*173+40)%950,y=35+i%3*35;ctx.fillStyle='#f3fbff';ctx.fillRect(x,y,65,15);ctx.fillRect(x+15,y-10,30,25)}
+ // island ground diamond layered
+ ctx.fillStyle='#547c48';ctx.beginPath();ctx.moveTo(450,105);ctx.lineTo(820,275);ctx.lineTo(450,445);ctx.lineTo(80,275);ctx.closePath();ctx.fill();
+ ctx.fillStyle='#79a85b';ctx.beginPath();ctx.moveTo(450,120);ctx.lineTo(780,275);ctx.lineTo(450,420);ctx.lineTo(120,275);ctx.closePath();ctx.fill();
+ // patches
+ for(let i=0;i<35;i++){let x=140+(i*67)%620,y=170+(i*47)%210;ctx.fillStyle=i%2?'#8dc96e':'#689955';ctx.fillRect(x,y,18,9)}
+ // tree clusters
+ function tree(x,y){ctx.fillStyle='#79553b';ctx.fillRect(x-6,y,12,28);ctx.fillStyle='#28734e';ctx.fillRect(x-20,y-20,40,28);ctx.fillStyle='#46a66b';ctx.fillRect(x-13,y-32,26,18);ctx.fillStyle='#72c77d';ctx.fillRect(x-5,y-37,10,8)}
+ [[240,230],[330,165],[610,185],[690,280],[260,340],[565,345],[395,370]].forEach(a=>tree(...a));
+ // pond
+ ctx.fillStyle='#4cadd1';ctx.beginPath();ctx.ellipse(500,275,65,30,0,0,Math.PI*2);ctx.fill();
+ // hut
+ ctx.fillStyle='#9a6b44';ctx.fillRect(400,235,70,55);ctx.fillStyle='#b85d43';ctx.beginPath();ctx.moveTo(390,240);ctx.lineTo(435,205);ctx.lineTo(480,240);ctx.fill();ctx.fillStyle='#53392b';ctx.fillRect(425,255,20,35);
+ // avatar
+ let px=450,py=300;ctx.fillStyle='#27354d';ctx.fillRect(px-9,py,18,28);ctx.fillStyle='#f4c79c';ctx.fillRect(px-7,py-14,14,14);ctx.fillStyle='#684d2f';ctx.fillRect(px-8,py-19,16,6);ctx.fillStyle='#ffd66b';ctx.fillRect(px-3,py+4,6,8);
+ ctx.fillStyle='#1d3143';ctx.font='bold 16px system-ui';ctx.fillText('YOU • '+s.loc,390,480);
+ // Floating island thumbnail
+ ctx.fillStyle='#556b86';ctx.beginPath();ctx.moveTo(740,75);ctx.lineTo(810,105);ctx.lineTo(780,145);ctx.lineTo(710,115);ctx.closePath();ctx.fill();ctx.fillStyle='#76bd82';ctx.fillRect(720,75,80,12);ctx.fillStyle='#b6e8ff';ctx.fillRect(750,95,8,24);
+}
+let loaded=localStorage.getItem('primal-save');if(loaded){try{s=JSON.parse(loaded)}catch(e){}}
+log('Welcome, adventurer. Your journey begins in the Meadow.');render();
+</script>
+</body></html>
